@@ -19,14 +19,16 @@ import numpy as np
 import pandas as pd
 import os
 from pathlib import Path
-from dateutil.parser import parse 
+from dateutil.parser import parse
 
-root_dir = Path(".").resolve()
+#root_dir = Path(".").resolve()
+bucket = 'gs://mdiaz_llamadas_123'
 
 def get_data(filename):
     
     data_dir = 'row'
-    file_path=os.path.join(root_dir, "data",data_dir, filename)
+
+    file_path=os.path.join(bucket, "data",data_dir, filename)
     data = pd.read_csv(file_path, encoding="latin-1", sep=';')
     return data
 
@@ -65,25 +67,33 @@ def corregir_fechas(data, col='FECHA2'):
             new_fecha = pd.to_datetime(fecha, errors='coerce')
         list_fechas.append(new_fecha) # A la lista vacia agregarle la nueva fecha
     data['RECEPCION_corr'] = list_fechas
+    #data [col] = pd.to_datetime(fecha, errors='coerce')
+    data [col] = pd.to_datetime(data[col],errors='coerce')
     return data
 
 def save_data(data,filename):
 
     out_name = 'limpieza ' + filename
-    out_path = os.path.join(root_dir,'data','processed',out_name)
+    out_path = os.path.join(bucket,'data','processed',out_name)
     data.to_csv(out_path)
     data
 
+    
 def main ():
-
-    filename="llamadas123_julio_2022.csv"
-    data = get_data(filename)
-    data = remover_duplicados_y_nulos(data)
-    data = convertir_str_a_num(data, col ='EDAD')
-    data = corregir_fecha(data, col='FECHA_INICIO_DESPLAZAMIENTO_MOVIL')
-    data = corregir_fechas(data, col='RECEPCION') 
-    print(data.info())
-    save_data(data,filename)
+    
+    filename= ["llamadas123_julio_2022.csv", "llamadas123_agosto_2022.csv","llamadas123_junio_2022.csv","datos_llamadas123_mayo_2022.csv","datos_abiertos_enero_2022.csv","datos_abiertos_febrero_2022.csv","datos_abiertos_marzo_2022.csv","datos_abiertos_abril_2022.csv","llamadas_123_abril2021.csv","llamadas_123_agosto2021.csv","llamadas_123_-enero2021.csv","llamadas_123_febrero2021.csv","llamadas_123_julio2021.csv","llamadas_123_marzo2021.csv","llamadas_123_mayo2021.csv","llamadas_123_noviembre_2021.csv","llamadas_123_octubre_2021.csv","llamadas_123_septiembre2021.csv","llamadas123_agosto_2022.csv","llamadas123_junio_2022.csv"]
+    dataframe = []
+    for filename in filename:
+        data = get_data(filename)
+        data = remover_duplicados_y_nulos(data)
+        data = convertir_str_a_num(data, col ='EDAD')
+        data = corregir_fecha(data, col='FECHA_INICIO_DESPLAZAMIENTO_MOVIL')
+      #  data = corregir_fechas(data, col='RECEPCION') 
+        dataframe.append(data)
+    print ('dataframe', dataframe)
+    total_datos = pd.concat(dataframe)
+    total_datos['CODIGO_LOCALIDAD'] = total_datos['CODIGO_LOCALIDAD'].apply(str)
+    save_data(total_datos,'datos_consolidados.csv')
 
 if __name__ == '__main__':
     main()
